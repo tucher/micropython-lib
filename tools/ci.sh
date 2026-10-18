@@ -59,6 +59,7 @@ function ci_package_tests_run {
         micropython/drivers/storage/sdcard/sdtest.py \
         micropython/umqtt.simple/test_umqtt_simple.py \
         micropython/xmltok/test_xmltok.py \
+        python-ecosys/aiohttp/test_aiohttp_ws.py \
         python-ecosys/requests/test_requests.py \
         python-stdlib/argparse/test_argparse.py \
         python-stdlib/base64/test_base64.py \
