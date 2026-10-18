@@ -7,12 +7,17 @@ import asyncio
 import random
 import json as _json
 import binascii
+import hashlib
 import re
 import struct
 from collections import namedtuple
 
 URL_RE = re.compile(r"(wss|ws)://([A-Za-z0-9-\.]+)(?:\:([0-9]+))?(/.+)?")
 URI = namedtuple("URI", ("protocol", "hostname", "port", "path"))  # noqa: PYI024
+
+# RFC 6455, 1.3: the server proves it read the key by answering with the
+# base64 of SHA-1 of the key followed by this.
+WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
 def urlparse(uri):
@@ -160,9 +165,17 @@ class WebSocketClient:
         header = header[:-2]
         assert header.startswith(b"HTTP/1.1 101 "), header
 
+        accept = None
         while header:
             header = await self.reader.readline()
             header = header[:-2]
+            name, _, value = header.partition(b":")
+            if name.strip().lower() == b"sec-websocket-accept":
+                accept = value.strip()
+        # RFC 6455, 4.1: without the right answer to the key, the client must
+        # fail the connection.
+        if accept != binascii.b2a_base64(hashlib.sha1(key + WS_GUID).digest())[:-1]:
+            raise ValueError("bad Sec-WebSocket-Accept")
 
     async def receive(self):
         while True:
