@@ -30,6 +30,10 @@ class SSLContext:
                 cadata = f.read()
         self._context.load_verify_locations(cadata)
 
+    def load_default_certs(self, purpose=None):
+        # The firmware's own root store; builds without one lack the method.
+        self._context.load_default_certs()
+
     def wrap_socket(
         self, sock, server_side=False, do_handshake_on_connect=True, server_hostname=None
     ):
@@ -39,6 +43,18 @@ class SSLContext:
             do_handshake_on_connect=do_handshake_on_connect,
             server_hostname=server_hostname,
         )
+
+
+def create_default_context(purpose=None, *, cafile=None, capath=None, cadata=None):
+    # As in CPython: a client context that verifies the server -- against the
+    # given CAs if there are any, otherwise against the default store.
+    ctx = SSLContext(PROTOCOL_TLS_CLIENT)
+    ctx.verify_mode = CERT_REQUIRED
+    if cafile or cadata:
+        ctx.load_verify_locations(cafile=cafile, cadata=cadata)
+    else:
+        ctx.load_default_certs()
+    return ctx
 
 
 def wrap_socket(
